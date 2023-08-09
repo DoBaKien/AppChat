@@ -1,0 +1,137 @@
+import {
+  Avatar,
+  Box,
+  Grid,
+  IconButton,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
+import Ava from "../../assert/1.jpg";
+
+import { useTranslation } from "react-i18next";
+import { useEffect } from "react";
+import axios from "axios";
+import { useState } from "react";
+import swal from "sweetalert";
+import { Chap } from "../ListFriend/styled";
+import Header from "./Header";
+function FriendRq() {
+  const { t } = useTranslation();
+  const [friendRq, setFriendRq] = useState("");
+  const id = localStorage.getItem("id");
+  const [search, setSearch] = useState("");
+  const ser = (val) => {
+    if (search === "") {
+      return val;
+    } else if (val.nickName.toLowerCase().includes(search.toLowerCase())) {
+      return val;
+    }
+  };
+  useEffect(() => {
+    axios
+      .get(`/findPendingRequests/${id}`)
+      .then(function (response) {
+        setFriendRq(response.data);
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
+  }, [id]);
+  const handleAccept = (e) => {
+    axios.put(`/acceptRequest/${id}/${e}`).then((res) => {
+      swal("Thành công", "Thêm bạn thành công!", "success").then(() => {
+        axios
+          .get(`/findPendingRequests/${id}`)
+          .then(function (response) {
+            setFriendRq(response.data);
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
+      });
+    });
+  };
+
+  const handleReject = (e) => {
+    swal({
+      title: "Are you sure?",
+      icon: "warning",
+      buttons: true,
+      dangerMode: true,
+    }).then((willDelete) => {
+      if (willDelete) {
+        axios.delete(`/deleteRequest/${id}/${e}`).then((res) => {
+          swal("Success", "Delete success", "success").then(() => {
+            axios
+              .get(`/findPendingRequests/${id}`)
+              .then(function (response) {
+                setFriendRq(response.data);
+              })
+              .catch(function (error) {
+                console.log(error);
+              });
+          });
+        });
+      }
+    });
+  };
+  return (
+    <Box sx={{ textAlign: "center", marginTop: 3 }}>
+      <Typography variant="h3">{t("Friends Request")}</Typography>
+      <Header t={t} setSearch={setSearch} />
+      <Grid container rowSpacing={1} columnSpacing={{ xs: 1, sm: 2, md: 2 }}>
+        {Array.from(friendRq)
+          .filter(ser)
+          .map((friend, index) => (
+            <Grid item xs={12} sm={5} md={6} xl={3} key={index}>
+              <Chap
+                elevation={4}
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <Avatar
+                    alt="Remy Sharp"
+                    src={Ava}
+                    sx={{ float: "left", marginRight: 2 }}
+                  />
+
+                  {friend.nickName}
+                </Box>
+                <Box>
+                  <Tooltip title="Accept" placement="top">
+                    <IconButton
+                      size="large"
+                      onClick={() => handleAccept(friend.uid)}
+                    >
+                      <CheckIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Reject" placement="top">
+                    <IconButton
+                      size="large"
+                      onClick={() => handleReject(friend.uid)}
+                    >
+                      <CloseIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </Chap>
+            </Grid>
+          ))}
+      </Grid>
+    </Box>
+  );
+}
+
+export default FriendRq;
